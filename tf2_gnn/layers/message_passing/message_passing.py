@@ -1,7 +1,7 @@
 """Message passing layer."""
 from abc import abstractmethod
 from typing import Dict, List, NamedTuple, Tuple, Any
-
+from dpu_utils.tf2utils import MLP
 import tensorflow as tf
 
 from tf2_gnn.utils.param_helpers import get_activation_function, get_aggregation_function
@@ -41,6 +41,7 @@ class MessagePassing(tf.keras.layers.Layer):
             "aggregation_function": "sum",  # One of sum, mean, max, sqrt_n
             "message_activation_function": "relu",  # One of relu, leaky_relu, elu, gelu, tanh
             "hidden_dim": 7,
+            "num_edge_MLP_hidden_layers": 1,
         }
 
     def __init__(self, params: Dict[str, Any], **kwargs):
@@ -52,6 +53,10 @@ class MessagePassing(tf.keras.layers.Layer):
 
         activation_fn_name = params["message_activation_function"]
         self._activation_fn = get_activation_function(activation_fn_name)
+
+        self._hyperedge_type_mlps: List[tf.keras.layers.Layer,...] = []
+
+        self._num_edge_MLP_hidden_layers = params["num_edge_MLP_hidden_layers"]
 
     @abstractmethod
     def _message_function(
@@ -84,6 +89,31 @@ class MessagePassing(tf.keras.layers.Layer):
         """
         pass
 
+
+    def build(self, input_shapes: MessagePassingInput):
+        node_embedding_shapes = input_shapes.node_embeddings
+        adjacency_list = input_shapes.adjacency_lists
+        num_edge_types = len(adjacency_list)
+
+        for i,adjacency_list_for_edge_type in enumerate(tf.sort(adjacency_list)):
+            edge_arity = adjacency_list_for_edge_type[1]
+            edge_layer_input_size = tf.TensorShape((None, edge_arity*node_embedding_shapes[-1]))
+            for endpoint_idx in range(edge_arity):
+                #with tf.name_scope(f"edge_type_{i}"):
+                mlp = MLP(
+                    out_size=self._hidden_dim, hidden_layers=self._num_edge_MLP_hidden_layers
+                )
+                mlp.build(edge_layer_input_size)
+                self._hyperedge_type_mlps.append(mlp)
+
+
+
+
+
+
+        super().build(input_shapes)
+
+
     def call(self, inputs: MessagePassingInput, training: bool = False):
         """Call the message passing layer.
 
@@ -102,19 +132,61 @@ class MessagePassing(tf.keras.layers.Layer):
         node_embeddings, adjacency_lists = inputs.node_embeddings, inputs.adjacency_lists
         num_nodes = tf.shape(node_embeddings)[0]
 
-        messages_per_type = self._calculate_messages_per_type(
-            adjacency_lists, node_embeddings, training
+
+        # Compute messages and message targets for each edge type:
+        messages = []  # list of tensors of messages of shape [E, H]
+        messages_targets = []  # list of indices indicating the node receiving the message
+        counter=0
+        for edge_type_idx, adjacency_list_for_edge_type in enumerate(adjacency_lists):
+            edge_arity = adjacency_list_for_edge_type.shape[1]
+
+            # Compute edge embeddings update function inputs by concatening all connected nodes:
+            edges_node_representations = []
+            for endpoint_idx in range(edge_arity):
+                node_idxs = adjacency_list_for_edge_type[:, endpoint_idx]
+                edges_node_representations.append(tf.gather(params=node_embeddings, indices=node_idxs))
+
+            raw_edge_representations = tf.concat(edges_node_representations, axis=-1)
+            # Now actually compute one result per involved node, using a separate function for
+            # each hyperedge endpoint:
+            for endpoint_idx in range(edge_arity):
+                target_state_ids = adjacency_list_for_edge_type[:, endpoint_idx]
+                messages.append(
+                    self._hyperedge_type_mlps[counter](
+                        raw_edge_representations, training
+                    )
+                )
+                messages_targets.append(target_state_ids)
+                counter=counter+1
+
+        messages = tf.concat(messages, axis=0)  # Shape [M, H]
+        messages_targets = tf.concat(messages_targets, axis=0)  # Shape [M]
+
+        # Node embedding
+        aggregated_messages = tf.math.unsorted_segment_sum(
+            data=messages,
+            segment_ids=messages_targets,
+            num_segments=num_nodes
         )
 
-        edge_type_to_message_targets = [
-            adjacency_list_for_edge_type[:, 1] for adjacency_list_for_edge_type in adjacency_lists
-        ]
+        return tf.nn.relu(aggregated_messages)
 
-        new_node_states = self._compute_new_node_embeddings(
-            node_embeddings, messages_per_type, edge_type_to_message_targets, num_nodes, training,
-        )  # Shape [V, H]
 
-        return new_node_states
+
+
+        # messages_per_type = self._calculate_messages_per_type(
+        #     adjacency_lists, node_embeddings, training
+        # )
+        #
+        # edge_type_to_message_targets = [
+        #     adjacency_list_for_edge_type[:, 1] for adjacency_list_for_edge_type in adjacency_lists
+        # ]
+        #
+        # new_node_states = self._compute_new_node_embeddings(
+        #     node_embeddings, messages_per_type, edge_type_to_message_targets, num_nodes, training,
+        # )  # Shape [V, H]
+        #
+        # return new_node_states
 
     def _compute_new_node_embeddings(
         self,
