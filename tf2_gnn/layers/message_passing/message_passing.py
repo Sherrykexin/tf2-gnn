@@ -95,8 +95,9 @@ class MessagePassing(tf.keras.layers.Layer):
         adjacency_list = input_shapes.adjacency_lists
         num_edge_types = len(adjacency_list)
 
-        for i,adjacency_list_for_edge_type in enumerate(tf.sort(adjacency_list)):
+        for i,adjacency_list_for_edge_type in enumerate(adjacency_list):
             edge_arity = adjacency_list_for_edge_type[1]
+            #print("edge_arity", adjacency_list_for_edge_type)
             edge_layer_input_size = tf.TensorShape((None, edge_arity*node_embedding_shapes[-1]))
             for endpoint_idx in range(edge_arity):
                 #with tf.name_scope(f"edge_type_{i}"):

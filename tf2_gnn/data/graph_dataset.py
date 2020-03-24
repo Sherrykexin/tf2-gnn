@@ -26,7 +26,7 @@ class GraphSample(object):
     def __init__(
         self,
         adjacency_lists: List[np.ndarray],
-        type_to_node_to_num_inedges: np.ndarray,
+        type_to_node_to_num_inedges: np.ndarray,#delete
         node_features: np.ndarray,
     ):
         super().__init__()
@@ -206,7 +206,7 @@ class GraphDataset(Generic[GraphSampleType]):
         )
         for edge_type_idx, batch_adjacency_list in enumerate(raw_batch["adjacency_lists"]):
             batch_adjacency_list.append(
-                graph_sample.adjacency_lists[edge_type_idx].reshape(-1, 2)
+                graph_sample.adjacency_lists[edge_type_idx].reshape(-1, 2) #todo:generalize to hyperedge
                 + raw_batch["num_nodes_in_batch"]
             )
 
@@ -230,7 +230,7 @@ class GraphDataset(Generic[GraphSampleType]):
             if len(adjacency_list) > 0:
                 batch_features[f"adjacency_list_{i}"] = np.concatenate(adjacency_list)
             else:
-                batch_features[f"adjacency_list_{i}"] = np.zeros(shape=(0, 2), dtype=np.int32)
+                batch_features[f"adjacency_list_{i}"] = np.zeros(shape=(0, 2), dtype=np.int32) #todo:generalize to hyperedge
 
         return batch_features, batch_labels
 

@@ -50,7 +50,7 @@ class QM9Dataset(GraphDataset[QM9GraphSample]):
         return {
             "max_nodes_per_batch": 10000,
             "add_self_loop_edges": True,
-            "tie_fwd_bkwd_edges": True,
+            "tie_fwd_bkwd_edges": True, #non-directed edge
             "task_id": 0,
         }
 
@@ -59,7 +59,7 @@ class QM9Dataset(GraphDataset[QM9GraphSample]):
         super().__init__(params, metadata=metadata)
         self._params = params
         self._num_fwd_edge_types = 4
-        if params["tie_fwd_bkwd_edges"]:
+        if params["tie_fwd_bkwd_edges"]: #non-directed edge
             self._num_edge_types = self._num_fwd_edge_types
         else:
             self._num_edge_types = 2 * self._num_fwd_edge_types
@@ -134,12 +134,12 @@ class QM9Dataset(GraphDataset[QM9GraphSample]):
             [] for _ in range(self._num_fwd_edge_types + int(self.params["add_self_loop_edges"]))
         ]  # type: List[List[Tuple[int, int]]]
         type_to_num_incoming_edges = np.zeros(shape=(self.num_edge_types, num_nodes))
-        for src, e, dest in graph:
+        for src, e, dest in graph: #can be extended to hyperedge
             if self.params["add_self_loop_edges"]:
                 fwd_edge_type = e  # 0 will be the self-loop type
             else:
                 fwd_edge_type = e - 1  # Make edges start from 0
-            type_to_adj_list[fwd_edge_type].append((src, dest))
+            type_to_adj_list[fwd_edge_type].append((src, dest)) #can be extended to hyperedge
             type_to_num_incoming_edges[fwd_edge_type, dest] += 1
             if self.params["tie_fwd_bkwd_edges"]:
                 type_to_adj_list[fwd_edge_type].append((dest, src))

@@ -144,7 +144,7 @@ class PPIDataset(GraphDataset[PPIGraphSample]):
                     [num_graph_nodes], np.int32
                 )
 
-        for edge_info in graph_json_data["links"]:
+        for edge_info in graph_json_data["links"]: #todo:can be expanded to multiple edge
             src_node, tgt_node = edge_info["source"], edge_info["target"]
             # First, shift node IDs so that each graph starts at node 0:
             graph_id = node_to_graph_id[src_node]
