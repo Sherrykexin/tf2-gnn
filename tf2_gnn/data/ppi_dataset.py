@@ -175,6 +175,12 @@ class PPIDataset(GraphDataset[PPIGraphSample]):
                     node_labels=np.array(graph_data.node_labels),
                 )
             )
+        print(final_graphs[0].node_features)
+        print("--")
+        print(final_graphs[1].node_features)
+        print("-final-")
+        print(final_graphs[-1].node_features)
+
 
         return final_graphs
 

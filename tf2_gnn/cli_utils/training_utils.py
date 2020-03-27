@@ -179,15 +179,27 @@ def get_train_cli_arg_parser():
         model_param_name,
         type=str,
         choices=sorted(get_known_message_passing_classes()),
+        default="RGCN",
+        nargs='?',
+        const="RGCN",
         help="GNN model type to train.",
     )
     parser.add_argument(
         task_param_name,
         type=str,
         choices=sorted(get_known_tasks()),
+        default="PPI",
+        nargs='?',
+        const="PPI",
         help="Task to train model for.",
     )
-    parser.add_argument(data_path_param_name, type=str, help="Directory containing the task data.")
+    parser.add_argument(
+        data_path_param_name,
+        type=str,
+        default="../../ppi",
+        nargs='?',
+        const="../../ppi",
+        help="Directory containing the task data.")
     parser.add_argument(
         "--save-dir",
         dest="save_dir",
