@@ -49,7 +49,10 @@ class GraphTaskModel(tf.keras.Model):
         )
 
         super().build([])
-
+    ##bypass original build
+    def build(self,input_shapes: Dict[str, Any],hornGraphOverload):
+        super().build([])
+        pass
     def get_initial_node_feature_shape(self, input_shapes) -> tf.TensorShape:
         return input_shapes["node_features"]
 
