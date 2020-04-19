@@ -31,28 +31,26 @@ class GraphTaskModel(tf.keras.Model):
         self._use_intermediate_gnn_results = params.get("use_intermediate_gnn_results", False)
         self._train_step_counter = 0
 
-    def build(self, input_shapes: Dict[str, Any]):
-        graph_params = {
-            name[4:]: value for name, value in self._params.items() if name.startswith("gnn_")
-        }
-        self._gnn = GNN(graph_params)
-        self._gnn.build(
-            GNNInput(
-                node_features=self.get_initial_node_feature_shape(input_shapes),
-                adjacency_lists=tuple(
-                    input_shapes[f"adjacency_list_{edge_type_idx}"]
-                    for edge_type_idx in range(self._num_edge_types)
-                ),
-                node_to_graph_map=tf.TensorShape((None,)),
-                num_graphs=tf.TensorShape(()),
+    def build(self, input_shapes: Dict[str, Any],hornGraphOverload=False):
+        ##bypass original build
+        if hornGraphOverload==False:
+            graph_params = {
+                name[4:]: value for name, value in self._params.items() if name.startswith("gnn_")
+            }
+            self._gnn = GNN(graph_params)
+            self._gnn.build(
+                GNNInput(
+                    node_features=self.get_initial_node_feature_shape(input_shapes),
+                    adjacency_lists=tuple(
+                        input_shapes[f"adjacency_list_{edge_type_idx}"]
+                        for edge_type_idx in range(self._num_edge_types)
+                    ),
+                    node_to_graph_map=tf.TensorShape((None,)),
+                    num_graphs=tf.TensorShape(()),
+                )
             )
-        )
+        super().build([])
 
-        super().build([])
-    ##bypass original build
-    def build(self,input_shapes: Dict[str, Any],hornGraphOverload):
-        super().build([])
-        pass
     def get_initial_node_feature_shape(self, input_shapes) -> tf.TensorShape:
         return input_shapes["node_features"]
 
@@ -217,7 +215,6 @@ class GraphTaskModel(tf.keras.Model):
             total_loss += task_metrics["loss"]
             total_num_graphs += batch_features["num_graphs_in_batch"]
             task_results.append(task_metrics)
-
             if training:
                 gradients = tape.gradient(
                     task_metrics["loss"], self.trainable_variables

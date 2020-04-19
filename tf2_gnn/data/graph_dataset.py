@@ -26,12 +26,12 @@ class GraphSample(object):
     def __init__(
         self,
         adjacency_lists: List[np.ndarray],
-        type_to_node_to_num_inedges: np.ndarray,#delete
+        #type_to_node_to_num_inedges: np.ndarray, #delete
         node_features: np.ndarray,
     ):
         super().__init__()
         self._adjacency_lists = adjacency_lists
-        self._type_to_node_to_num_inedges = type_to_node_to_num_inedges
+        #self._type_to_node_to_num_inedges = type_to_node_to_num_inedges
         self._node_features = node_features
 
     @property
@@ -39,10 +39,10 @@ class GraphSample(object):
         """Adjacency information by edge type as list of ndarrays of shape [E, 2]"""
         return self._adjacency_lists
 
-    @property
-    def type_to_node_to_num_inedges(self) -> np.ndarray:
-        """Number of incoming edge by edge type as ndarray of shape [V]"""
-        return self._type_to_node_to_num_inedges
+    # @property
+    # def type_to_node_to_num_inedges(self) -> np.ndarray:
+    #     """Number of incoming edge by edge type as ndarray of shape [V]"""
+    #     return self._type_to_node_to_num_inedges
 
     @property
     def node_features(self) -> np.ndarray:
@@ -75,6 +75,7 @@ class GraphDataset(Generic[GraphSampleType]):
     def __init__(self, params: Dict[str, Any], metadata: Optional[Dict[str, Any]] = None):
         self._params = params
         self._metadata = metadata if metadata is not None else {}
+        self._node_number_per_edge_type=list()
 
     @property
     def name(self) -> str:
@@ -151,9 +152,9 @@ class GraphDataset(Generic[GraphSampleType]):
         graph_sample_iterator = self._graph_iterator(data_fold)
 
         raw_batch = self._new_batch()
+
         for graph_sample in graph_sample_iterator:
             num_nodes_in_graph = len(graph_sample.node_features)
-
             # Yield the batch if adding the current graph_sample would make it too big.
             if self._batch_would_be_too_full(raw_batch, graph_sample):
                 yield self._finalise_batch(raw_batch)
@@ -190,7 +191,6 @@ class GraphDataset(Generic[GraphSampleType]):
 
     def _add_graph_to_batch(self, raw_batch: Dict[str, Any], graph_sample: GraphSampleType) -> None:
         """Add a graph sample to a minibatch under preparation.
-
         Args:
             raw_batch: Holder for the currently constructed minibatch (created by _new_batch)
             graph_sample: Graph sample to add.
@@ -204,11 +204,26 @@ class GraphDataset(Generic[GraphSampleType]):
                 dtype=np.int32,
             )
         )
-        for edge_type_idx, batch_adjacency_list in enumerate(raw_batch["adjacency_lists"]):
+        # for edge_type_idx, batch_adjacency_list in enumerate(raw_batch["adjacency_lists"]):
+        #     #edge_number=len(batch_adjacency_list[0])
+        #     batch_adjacency_list.append(
+        #         graph_sample.adjacency_lists[edge_type_idx].reshape(-1, 2) #todo:generalize to hyperedge
+        #         + raw_batch["num_nodes_in_batch"]
+        #     )
+
+        #print("before add raw batch", raw_batch["adjacency_lists"])
+        for edge_type_idx, (batch_adjacency_list,sample_adjacency_list) in enumerate(zip(raw_batch["adjacency_lists"],graph_sample.adjacency_lists)):
+            edge_number=sample_adjacency_list.shape[1]
+            #print("edge_number",edge_number)
             batch_adjacency_list.append(
-                graph_sample.adjacency_lists[edge_type_idx].reshape(-1, 2) #todo:generalize to hyperedge
-                + raw_batch["num_nodes_in_batch"]
+                graph_sample.adjacency_lists[edge_type_idx]
+                #todo: why?
+                # .reshape(-1, edge_number) #todo:generalize to hyperedge
+                # + raw_batch["num_nodes_in_batch"]
             )
+
+        #print("after add raw batch", raw_batch["adjacency_lists"])
+
 
     def _finalise_batch(self, raw_batch: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Turns a raw batch into a minibatch ready to be fed to the model (i.e., converts
@@ -239,19 +254,21 @@ class GraphDataset(Generic[GraphSampleType]):
         in the generated minibatch (i.e., additional keys in the features or
         label dictionaries).
         """
-        batch_features_types = {
-            "node_features": tf.float32,
-            "node_to_graph_map": tf.int32,
-            "num_graphs_in_batch": tf.int32,
-        }
         batch_features_shapes = {
             "node_features": (None,) + self.node_feature_shape,
             "node_to_graph_map": (None,),
             "num_graphs_in_batch": (),
         }
+        batch_features_types = {
+            "node_features": tf.float32,
+            "node_to_graph_map": tf.int32,
+            "num_graphs_in_batch": tf.int32,
+        }
+
         for edge_type_idx in range(self.num_edge_types):
             batch_features_types[f"adjacency_list_{edge_type_idx}"] = tf.int32
-            batch_features_shapes[f"adjacency_list_{edge_type_idx}"] = (None, 2)
+            batch_features_shapes[f"adjacency_list_{edge_type_idx}"] = (None, 2)  # todo: extend to hyper edge
+
         batch_labels_types: Dict[str, Any] = {}
         batch_labels_shapes: Dict[str, Any] = {}
 
@@ -281,6 +298,10 @@ class GraphDataset(Generic[GraphSampleType]):
         else:
             graph_batch_iterator = lambda: self.graph_batch_iterator(data_fold)
 
+        print(data_description.batch_features_types)
+        print(data_description.batch_labels_types)
+        print(data_description.batch_features_shapes)
+        print(data_description.batch_labels_shapes)
         dataset = tf.data.Dataset.from_generator(
             generator=graph_batch_iterator,
             output_types=(
