@@ -49,7 +49,7 @@ def train(
     print("run_one_epoch valid_data")
     best_valid_metric, best_val_str = model.compute_epoch_metrics(initial_valid_results)
     log_fun(f"Initial valid metric: {best_val_str}.")
-    #save_model(save_file, model, dataset) #todo:recover save_model
+    save_model(save_file, model, dataset)
     best_valid_epoch = 0
     train_time_start = time.time()
     for epoch in range(1, max_epochs + 1):
@@ -80,7 +80,7 @@ def train(
             log_fun(
                 f"  (Best epoch so far, target metric decreased to {valid_metric:.5f} from {best_valid_metric:.5f}.)",
             )
-            #save_model(save_file, model, dataset) #todo:recover save_model
+            save_model(save_file, model, dataset)
             best_valid_metric = valid_metric
             best_valid_epoch = epoch
         elif epoch - best_valid_epoch >= patience:

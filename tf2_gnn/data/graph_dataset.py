@@ -298,10 +298,10 @@ class GraphDataset(Generic[GraphSampleType]):
         else:
             graph_batch_iterator = lambda: self.graph_batch_iterator(data_fold)
 
-        print(data_description.batch_features_types)
-        print(data_description.batch_labels_types)
-        print(data_description.batch_features_shapes)
-        print(data_description.batch_labels_shapes)
+        # print(data_description.batch_features_types)
+        # print(data_description.batch_labels_types)
+        # print(data_description.batch_features_shapes)
+        # print(data_description.batch_labels_shapes)
         dataset = tf.data.Dataset.from_generator(
             generator=graph_batch_iterator,
             output_types=(
