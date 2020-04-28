@@ -5,7 +5,7 @@ from dpu_utils.tf2utils import MLP
 import tensorflow as tf
 
 from tf2_gnn.utils.param_helpers import get_activation_function, get_aggregation_function
-
+from tf2_gnn.utils.gather_dense_gradient import gather_dense_gradient
 
 class MessagePassingInput(NamedTuple):
     """A named tuple to hold input to the message passing layer."""
@@ -146,6 +146,7 @@ class MessagePassing(tf.keras.layers.Layer):
             for endpoint_idx in range(edge_arity):
                 node_idxs = adjacency_list_for_edge_type[:, endpoint_idx]
                 edges_node_representations.append(tf.gather(params=node_embeddings, indices=node_idxs))
+                #edges_node_representations.append(gather_dense_gradient(params=node_embeddings, indices=node_idxs))
 
             raw_edge_representations = tf.concat(edges_node_representations, axis=-1)
             # Now actually compute one result per involved node, using a separate function for

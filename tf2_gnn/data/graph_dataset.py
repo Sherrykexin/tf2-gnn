@@ -204,26 +204,13 @@ class GraphDataset(Generic[GraphSampleType]):
                 dtype=np.int32,
             )
         )
-        # for edge_type_idx, batch_adjacency_list in enumerate(raw_batch["adjacency_lists"]):
-        #     #edge_number=len(batch_adjacency_list[0])
-        #     batch_adjacency_list.append(
-        #         graph_sample.adjacency_lists[edge_type_idx].reshape(-1, 2) #todo:generalize to hyperedge
-        #         + raw_batch["num_nodes_in_batch"]
-        #     )
 
-        #print("before add raw batch", raw_batch["adjacency_lists"])
-        for edge_type_idx, (batch_adjacency_list,sample_adjacency_list) in enumerate(zip(raw_batch["adjacency_lists"],graph_sample.adjacency_lists)):
-            edge_number=sample_adjacency_list.shape[1]
-            #print("edge_number",edge_number)
+        for edge_type_idx, batch_adjacency_list in enumerate(raw_batch["adjacency_lists"]):
+            #edge_number=len(batch_adjacency_list[0])
             batch_adjacency_list.append(
-                graph_sample.adjacency_lists[edge_type_idx]
-                #todo: why?
-                # .reshape(-1, edge_number) #todo:generalize to hyperedge
-                # + raw_batch["num_nodes_in_batch"]
+                graph_sample.adjacency_lists[edge_type_idx].reshape(-1, 2) #todo:generalize to hyperedge
+                + raw_batch["num_nodes_in_batch"] #offset
             )
-
-        #print("after add raw batch", raw_batch["adjacency_lists"])
-
 
     def _finalise_batch(self, raw_batch: Dict[str, Any]) -> Tuple[Dict[str, Any], Dict[str, Any]]:
         """Turns a raw batch into a minibatch ready to be fed to the model (i.e., converts

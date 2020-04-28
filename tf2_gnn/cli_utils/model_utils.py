@@ -28,8 +28,8 @@ def save_model(save_file: str, model: GraphTaskModel, dataset: GraphDataset) -> 
     hdf5_file = get_model_file_path(save_file, "hdf5")
     with open(pkl_file, "wb") as out_file:
         pickle.dump(data_to_store, out_file, pickle.HIGHEST_PROTOCOL)
-    # model.save_weights(hdf5_file, save_format="h5")
-    file_path=hdf5_file[:-5]
+    #model.save_weights(hdf5_file, save_format="tf") #hdf5_file= "path_model_file/model_name.hdf5"
+    file_path=hdf5_file[:-5] #hdf5_file= "path_model_file/model_name"
     model.save_weights(file_path, save_format="tf")
     print(f"   (Stored model metadata to {pkl_file} and weights to {hdf5_file})")
 
