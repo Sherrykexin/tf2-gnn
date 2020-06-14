@@ -52,6 +52,9 @@ def train(
     save_model(save_file, model, dataset)
     best_valid_epoch = 0
     train_time_start = time.time()
+    #todo: record loss as a list, and draw curve later
+    train_loss_list=[]
+    valid_loss_list=[]
     for epoch in range(1, max_epochs + 1):
         log_fun(f"== Epoch {epoch}")
         train_loss, train_speed, train_results = model.run_one_epoch(
@@ -61,6 +64,7 @@ def train(
         log_fun(
             f" Train:  {train_loss:.4f} loss | {train_metric_string} | {train_speed:.2f} graphs/s",
         )
+        train_loss_list.append(train_loss)
         valid_loss, valid_speed, valid_results = model.run_one_epoch(
             valid_data, training=False, quiet=quiet
         )
@@ -68,7 +72,7 @@ def train(
         log_fun(
             f" Valid:  {valid_loss:.4f} loss | {valid_metric_string} | {valid_speed:.2f} graphs/s",
         )
-
+        valid_loss_list.append(valid_loss)
         if aml_run is not None:
             aml_run.log("task_train_metric", float(train_metric))
             aml_run.log("train_speed", float(train_speed))
@@ -91,7 +95,7 @@ def train(
             )
             log_fun(f"Training took {total_time}s. Best validation metric: {best_valid_metric}",)
             break
-    return save_file
+    return save_file,train_loss_list,valid_loss_list,best_valid_epoch
 
 
 def run_train_from_args(args, hyperdrive_hyperparameter_overrides: Dict[str, str] = {}) -> None:

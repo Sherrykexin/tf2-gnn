@@ -97,12 +97,11 @@ class MessagePassing(tf.keras.layers.Layer):
 
         for i,adjacency_list_for_edge_type in enumerate(adjacency_list):
             edge_arity = adjacency_list_for_edge_type[1]
-            #print("edge_arity", adjacency_list_for_edge_type)
             edge_layer_input_size = tf.TensorShape((None, edge_arity*node_embedding_shapes[-1]))
             with tf.name_scope(f"edge_type_{i}"):
                 for endpoint_idx in range(edge_arity):
                     with tf.name_scope(f"edge_arity_{endpoint_idx}"):
-                        mlp = MLP(out_size=self._hidden_dim, hidden_layers=self._num_edge_MLP_hidden_layers)
+                        mlp = MLP(out_size=self._hidden_dim, hidden_layers=self._num_edge_MLP_hidden_layers,name="edge_arity_"+str(endpoint_idx))
                         #mlp=tf.keras.layers.Dense(units=self._hidden_dim,use_bias=True,activation=tf.nn.relu)
                         #mlp.build(edge_layer_input_size)
                         self._hyperedge_type_mlps.append(mlp)
@@ -126,6 +125,20 @@ class MessagePassing(tf.keras.layers.Layer):
 
         Returns:
             float32 tensor of shape [V, hidden_dim]
+        """
+        """
+        Call the message passing layer.
+            Args:
+                inputs: A tuple containing two items:
+                    node_embeddings: float32 tensor of shape [V, D], the original representation of each
+                        node in the graph.
+                    adjacency_lists: Tuple of L adjacency lists, represented as int32 tensors of shape
+                        [E, A_l], where A_l is the arity of l-th relation.
+                        Concretely, adjacency_lists[l][k,:] == [v_1, ..., v_{A_l}] means that
+                        the k-th edge of type l connects nodes v_1 ... v_{A_l}.
+                training: A bool that denotes whether we are in training mode.
+            Returns:
+                float32 tensor of shape [V, hidden_dim]
         """
         node_embeddings, adjacency_lists = inputs.node_embeddings, inputs.adjacency_lists
         num_nodes = tf.shape(node_embeddings)[0]

@@ -71,10 +71,11 @@ class GNN_Edge_MLP(MessagePassing):
         else:
             edge_layer_input_size = node_embedding_shapes[-1]
 
+        #debug: even if we build these layers, there are no gradient for them
         for i in range(num_edge_types):
             with tf.name_scope(f"edge_type_{i}"):
                 mlp = MLP(
-                    out_size=self._hidden_dim, hidden_layers=self._num_edge_MLP_hidden_layers
+                    out_size=self._hidden_dim, hidden_layers=self._num_edge_MLP_hidden_layers,name="gnn_edge_mlp"
                 )
                 mlp.build(tf.TensorShape((None, edge_layer_input_size)))
             self._edge_type_mlps.append(mlp)
