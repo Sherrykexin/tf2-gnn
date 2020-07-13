@@ -23,18 +23,23 @@ def save_model(save_file: str, model: GraphTaskModel, dataset: GraphDataset) -> 
         "dataset_class": dataset.__class__,
         "dataset_params": dataset._params,
         "dataset_metadata": dataset._metadata,
+        "num_edge_types": dataset.num_edge_types,
+        "node_feature_shape": dataset.node_feature_shape,
     }
     pkl_file = get_model_file_path(save_file, "pkl")
     hdf5_file = get_model_file_path(save_file, "hdf5")
     with open(pkl_file, "wb") as out_file:
         pickle.dump(data_to_store, out_file, pickle.HIGHEST_PROTOCOL)
-
     model.save_weights(hdf5_file, save_format="h5")
-    # fixed bug because duplicated name scope of layers
     print(f"   (Stored model metadata to {pkl_file} and weights to {hdf5_file})")
 
 
-def load_weights_verbosely(save_file: str, model: GraphTaskModel):
+def load_weights_verbosely(
+    save_file: str,
+    model: GraphTaskModel,
+    warn_about_initialisations: bool = True,
+    warn_about_ignored: bool = True,
+):
     hdf5_save_file = get_model_file_path(save_file, "hdf5")
     var_name_to_variable = {}
     var_names_unique = True
@@ -52,7 +57,7 @@ def load_weights_verbosely(save_file: str, model: GraphTaskModel):
         )
 
     var_name_to_weights = {}
-
+    first_layer_name = "invariant_node_identify_task/"
     def hdf5_item_visitor(name, item):
         if not isinstance(item, h5py.Dataset):
             return
@@ -69,23 +74,20 @@ def load_weights_verbosely(save_file: str, model: GraphTaskModel):
             model_sublayer.visititems(hdf5_item_visitor)
 
     tfvar_weight_tuples = []
-
-
     for var_name, tfvar in var_name_to_variable.items():
-        first_name_scope_name="invariant_argument_selection_task/"
-        saved_weight = var_name_to_weights.get(first_name_scope_name+var_name) # add first_name_scope_name
+        saved_weight = var_name_to_weights.get(first_layer_name+var_name)
         if saved_weight is None:
-            print(f"I: Weights for {var_name} freshly initialised.")
+            if warn_about_initialisations:
+                print(f"I: Weights for {var_name} freshly initialised.")
         else:
-            print(f"I: Weights for {var_name} loaded.")
             tfvar_weight_tuples.append((tfvar, saved_weight))
 
-    for var_name in var_name_to_weights.keys():
-        var_name=var_name[var_name.find("/")+1:] # get red of first_name_scope_name
-        if var_name not in var_name_to_variable:
-            print(f"I: Model does not use saved weights for {var_name}.")
-        else:
-            print(f"I: Model use saved weights for {var_name}.")
+    if warn_about_ignored:
+        for var_name in var_name_to_weights.keys():
+            var_name_without_first_layer_name=var_name[var_name.find("/")+1:]
+            #print("var_name_without_first_layer_name",var_name_without_first_layer_name)
+            if var_name_without_first_layer_name not in var_name_to_variable:
+                print(f"I: Model does not use saved weights for {var_name}.")
 
     K.batch_set_value(tfvar_weight_tuples)
 
