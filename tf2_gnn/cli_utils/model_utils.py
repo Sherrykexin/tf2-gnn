@@ -2,7 +2,7 @@ import json
 import os
 import pickle
 from typing import Dict, Any, Optional, Set, Type
-
+import re
 import h5py
 import numpy as np
 import tensorflow as tf
@@ -57,11 +57,7 @@ def load_weights_verbosely(
         )
 
     var_name_to_weights = {}
-    first_layer_name=""
-    if type(model).__name__=="InvariantArgumentSelectionTask":
-        first_layer_name="invariant_argument_selection_task/"
-    if type(model).__name__ == "InvariantNodeIdentifyTask":
-        first_layer_name = "invariant_node_identify_task/"
+    first_layer_name= re.sub(r'(?<!^)(?=[A-Z])', '_', type(model).__name__).lower() +"/"
     def hdf5_item_visitor(name, item):
         if not isinstance(item, h5py.Dataset):
             return
@@ -88,9 +84,7 @@ def load_weights_verbosely(
 
     if warn_about_ignored:
         for var_name in var_name_to_weights.keys():
-            #print("var_name",var_name)
             var_name_without_first_layer_name=var_name[var_name.find("/")+1:]
-            #print("var_name_without_first_layer_name",var_name_without_first_layer_name)
             if var_name_without_first_layer_name not in var_name_to_variable:
                 print(f"I: Model does not use saved weights for {var_name}.")
 
