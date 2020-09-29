@@ -36,6 +36,7 @@ class HornGraphDataset(GraphDataset[HornGraphSample]):
         self._node_feature_shape: Optional[Tuple[int]] = None
         self._loaded_data: Dict[DataFold, List[GraphSample]] = {}
         self._argument_scores={}
+        self._label_list={}
         self._ranked_argument_scores = {}
         self._file_list={}
         self._benchmark=params["benchmark"]
@@ -96,6 +97,7 @@ class HornGraphDataset(GraphDataset[HornGraphSample]):
         # print("raw_inputs.ranked_argument_scores",raw_inputs.ranked_argument_scores)
         self._ranked_argument_scores[data_name] = raw_inputs.ranked_argument_scores
         self._file_list[data_name] = raw_inputs.file_names
+        self._label_list[data_name]=raw_inputs.labels
 
         return final_graphs
 
