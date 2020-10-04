@@ -40,7 +40,6 @@ class InvariantArgumentSelectionTask(GraphTaskModel):
                 num_graphs=tf.TensorShape(()),
             )
         )
-
         #build task-specific layer
 
         with tf.name_scope("Argument_repr_to_regression_layer"):
@@ -51,9 +50,7 @@ class InvariantArgumentSelectionTask(GraphTaskModel):
             self._argument_output_layer.build(
                 tf.TensorShape((None, self._params["regression_hidden_layer_size"][1])) #decide layer input shape
             )
-
-
-        super().build([],True)#by pass graph_task_mode (GraphTaskModel)' build because it will build another gnn layer
+        super().build()#by pass graph_task_mode (GraphTaskModel)' build because it will build another gnn layer
         #tf.keras.Model.build([])
 
     def call(self, inputs, training: bool = False):
@@ -171,7 +168,8 @@ class InvariantNodeIdentifyTask(GraphTaskModel):
             self._argument_output_layer.build(
                 tf.TensorShape((None, self._params["regression_hidden_layer_size"][1])))#decide layer input shape
 
-        super().build([],True)#by pass graph_task_mode (GraphTaskModel)' build because it will build another gnn layer
+        #super().build([],True)#by pass graph_task_mode (GraphTaskModel)' build because it will build another gnn layer
+        super().build_horn_graph_gnn()
         #tf.keras.Model.build([])
 
     def call(self, inputs, training: bool = False):
