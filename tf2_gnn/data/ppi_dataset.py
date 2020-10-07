@@ -17,9 +17,9 @@ class PPIGraphSample(GraphSample):
         node_features: np.ndarray,
         node_labels: np.ndarray,
     ):
-        super().__init__(adjacency_lists, node_features)
+        super().__init__(adjacency_lists, type_to_node_to_num_inedges,node_features)
         self._node_labels = node_labels
-        self.type_to_node_to_num_inedges = type_to_node_to_num_inedges
+        #self.type_to_node_to_num_inedges = type_to_node_to_num_inedges
 
     @property
     def node_labels(self) -> np.ndarray:
