@@ -191,13 +191,13 @@ class HornGraphDataset(GraphDataset[HornGraphSample]):
         # print("sample adjacent list",len(graph_sample.adjacency_lists))
 
         for edge_type_idx, (batch_adjacency_list,sample_adjacency_list) in enumerate(zip(raw_batch["adjacency_lists"],graph_sample.adjacency_lists)):
-            edge_number=sample_adjacency_list.shape[1]
-            # print("sample_adjacency_list.shape",sample_adjacency_list.shape)
-            # print("edge_number",edge_number)
-            batch_adjacency_list.append(
-                graph_sample.adjacency_lists[edge_type_idx].reshape(-1, edge_number)
-                 + offset #offset
-            )
+            if len(sample_adjacency_list)!=0:
+                edge_number=sample_adjacency_list.shape[1]
+                batch_adjacency_list.append(
+                    graph_sample.adjacency_lists[edge_type_idx].reshape(-1, edge_number)
+                     + offset)
+            # else:
+            #     batch_adjacency_list.append([])
             #print("graph_sample.adjacency_lists",graph_sample.adjacency_lists[edge_type_idx] + offset)
 
         raw_batch["node_argument"].extend(graph_sample._node_argument + offset)
